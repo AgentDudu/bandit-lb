@@ -9,13 +9,23 @@ from bandit_lb.simulator.backend import (
     LatencyDistributionType,
     sample_latency_ms,
 )
+from bandit_lb.simulator.registry import (
+    BackendHealthRecord,
+    BackendRegistry,
+    HealthStatus,
+    RegistryConfig,
+)
 
 __all__ = [
     "BackendConfig",
+    "BackendHealthRecord",
     "BackendInstance",
+    "BackendRegistry",
     "FailureConfig",
     "FailureMode",
+    "HealthStatus",
     "LatencyConfig",
     "LatencyDistributionType",
+    "RegistryConfig",
     "sample_latency_ms",
 ]
