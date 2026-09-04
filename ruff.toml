@@ -1,0 +1,7 @@
+line-length = 100
+target-version = "py311"
+exclude = [".agents", ".venv", "build", "dist"]
+
+[lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "C4", "PT", "RET", "SIM"]
+ignore = []
