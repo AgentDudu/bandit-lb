@@ -77,6 +77,50 @@ async def test_health_check_in_memory() -> None:
 
 
 @pytest.mark.asyncio
+async def test_health_state_transitions_and_recovery() -> None:
+    """Verify backend health state transitions from HEALTHY to UNHEALTHY and back to HEALTHY."""
+    reg_config = RegistryConfig(
+        health_check_interval_seconds=0.05,
+        health_check_timeout_seconds=0.2,
+        unhealthy_threshold=2,
+    )
+    registry = BackendRegistry(config=reg_config, use_in_memory_transport=True)
+
+    backend = BackendInstance(BackendConfig(backend_id="transition-node", is_healthy=True))
+    registry.register(backend)
+
+    # Initial check: Healthy
+    status = await registry.check_backend_health("transition-node")
+    assert status == HealthStatus.HEALTHY
+    assert len(registry.get_healthy()) == 1
+
+    # Simulate degradation / outage
+    backend.config.is_healthy = False
+
+    # First failure: consecutive_failures = 1 (threshold is 2, so remains HEALTHY until threshold)
+    status_fail_1 = await registry.check_backend_health("transition-node")
+    assert status_fail_1 == HealthStatus.HEALTHY
+
+    # Second failure: consecutive_failures = 2 (meets unhealthy_threshold=2 -> UNHEALTHY)
+    status_fail_2 = await registry.check_backend_health("transition-node")
+    assert status_fail_2 == HealthStatus.UNHEALTHY
+    assert len(registry.get_healthy()) == 0
+
+    # Backend recovers
+    backend.config.is_healthy = True
+    status_recover = await registry.check_backend_health("transition-node")
+    assert status_recover == HealthStatus.HEALTHY
+    assert len(registry.get_healthy()) == 1
+
+    record = registry.get_health_record("transition-node")
+    assert record is not None
+    assert record.consecutive_failures == 0
+    assert record.successful_checks == 2
+    assert record.total_checks == 4
+    assert record.availability_ratio == 0.5
+
+
+@pytest.mark.asyncio
 async def test_background_health_monitor_loop() -> None:
     """Verify background monitor loop continuously updates health records."""
     reg_config = RegistryConfig(
