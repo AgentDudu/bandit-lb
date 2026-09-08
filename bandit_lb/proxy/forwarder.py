@@ -37,6 +37,7 @@ class ForwardResult:
     headers: dict[str, str]
     content: bytes
     latency_ms: float
+    ttfb_ms: float | None = None
     error: str | None = None
     backend_id: str | None = None
 
@@ -145,23 +146,25 @@ class UpstreamForwarder:
         method = request.method.upper()
 
         t_start = time.perf_counter()
+        ttfb_ms: float | None = None
         try:
-            upstream_resp = await self.client.request(
+            async with self.client.stream(
                 method=method,
                 url=target_url,
                 headers=forward_headers,
                 content=body if body else None,
-            )
-            latency_ms = (time.perf_counter() - t_start) * 1000.0
-
-            resp_headers = dict(upstream_resp.headers)
-            content = upstream_resp.content
+            ) as upstream_resp:
+                ttfb_ms = (time.perf_counter() - t_start) * 1000.0
+                content = await upstream_resp.aread()
+                latency_ms = (time.perf_counter() - t_start) * 1000.0
+                resp_headers = dict(upstream_resp.headers)
 
             return ForwardResult(
                 status_code=upstream_resp.status_code,
                 headers=resp_headers,
                 content=content,
                 latency_ms=latency_ms,
+                ttfb_ms=ttfb_ms,
                 error="upstream_5xx" if upstream_resp.status_code >= 500 else None,
                 backend_id=backend_id,
             )
