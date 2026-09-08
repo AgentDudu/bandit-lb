@@ -47,6 +47,16 @@ def create_proxy_app(
         Configured FastAPI application with lifecycle management and wildcard forwarding.
     """
 
+    active_pipeline = feedback_pipeline
+    owns_pipeline = False
+    if active_pipeline is None and router is not None:
+        active_pipeline = FeedbackPipeline(
+            router=router,
+            normalizer=reward_normalizer,
+            collector=telemetry_collector,
+        )
+        owns_pipeline = True
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # 1. Initialize forwarder if not provided
@@ -56,18 +66,8 @@ def create_proxy_app(
         else:
             app.state.owns_forwarder = False
 
-        # 2. Initialize and start feedback pipeline if router exists
-        if app.state.feedback_pipeline is None and app.state.router is not None:
-            app.state.feedback_pipeline = FeedbackPipeline(
-                router=app.state.router,
-                normalizer=app.state.reward_normalizer,
-                collector=app.state.telemetry_collector,
-            )
-            app.state.owns_pipeline = True
-        else:
-            app.state.owns_pipeline = False
-
-        if app.state.feedback_pipeline is not None:
+        # 2. Start feedback pipeline if attached
+        if app.state.feedback_pipeline is not None and not app.state.feedback_pipeline.is_running:
             await app.state.feedback_pipeline.start()
 
         yield
@@ -97,7 +97,8 @@ def create_proxy_app(
         if context_extractor is not None
         else ContextExtractor(dimension=default_dim)
     )
-    app.state.feedback_pipeline = feedback_pipeline
+    app.state.feedback_pipeline = active_pipeline
+    app.state.owns_pipeline = owns_pipeline
     app.state.telemetry_collector = telemetry_collector
     app.state.reward_normalizer = reward_normalizer
 
