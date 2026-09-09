@@ -33,9 +33,9 @@ def format_distribution_chart(
     for arm_id, count in sorted(distribution.items(), key=lambda x: x[0]):
         ratio = count / total
         filled = int(round(ratio * bar_width))
-        bar = "█" * filled + "░" * (bar_width - filled)
+        bar = "#" * filled + "-" * (bar_width - filled)
         pct = ratio * 100.0
-        lines.append(f"  {arm_id.ljust(max_arm_len)} │ {bar} │ {pct:5.1f}% ({count:,} reqs)")
+        lines.append(f"  {arm_id.ljust(max_arm_len)} | {bar} | {pct:5.1f}% ({count:,} reqs)")
 
     return "\n".join(lines)
 
@@ -89,16 +89,16 @@ def format_metrics_table(metrics_list: list[BenchmarkMetrics]) -> str:
     def make_line(left: str, mid: str, right: str, sep: str) -> str:
         return left + sep.join(mid * (w + 2) for w in col_widths) + right
 
-    top_border = make_line("┌", "─", "┐", "┬")
-    header_sep = make_line("├", "─", "┤", "┼")
-    bottom_border = make_line("└", "─", "┘", "┴")
+    top_border = make_line("+", "-", "+", "+")
+    header_sep = make_line("+", "-", "+", "+")
+    bottom_border = make_line("+", "-", "+", "+")
 
-    header_str = "│ " + " │ ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " │"
+    header_str = "| " + " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " |"
 
     body_lines: list[str] = []
     for row in rows:
         formatted_row = (
-            "│ " + " │ ".join(val.rjust(col_widths[i]) for i, val in enumerate(row)) + " │"
+            "| " + " | ".join(val.rjust(col_widths[i]) for i, val in enumerate(row)) + " |"
         )
         body_lines.append(formatted_row)
 

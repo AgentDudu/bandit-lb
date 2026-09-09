@@ -130,7 +130,7 @@ def test_format_distribution_chart() -> None:
     assert "b1" in chart
     assert "80.0%" in chart
     assert "20.0%" in chart
-    assert "█" in chart
+    assert "#" in chart
 
     assert "no requests" in format_distribution_chart({})
 
